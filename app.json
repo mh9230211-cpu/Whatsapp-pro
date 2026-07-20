@@ -4,6 +4,10 @@
     "slug": "whatsapp-pro",
     "version": "1.0.0",
     "orientation": "portrait",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
     "android": {
       "package": "com.whatsapp.pro.production",
       "adaptiveIcon": {
