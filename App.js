@@ -6,7 +6,8 @@ import {
   TouchableOpacity, 
   TextInput, 
   ScrollView, 
-  ActivityIndicator 
+  ActivityIndicator,
+  Alert
 } from 'react-native';
 
 import { initializeApp, getApps } from 'firebase/app';
@@ -46,6 +47,7 @@ export default function App() {
   const [contacts] = useState(['arif@gmail.com', 'rahul@gmail.com', 'test@gmail.com']);
   const [isSignUp, setIsSignUp] = useState(false);
 
+  // Auto-Login Logic (Session Persistence)
   useEffect(() => {
     if (!auth) {
       setLoading(false);
@@ -80,30 +82,63 @@ export default function App() {
   }, [activeChat, user]);
 
   const handleSignUp = async () => {
+    if (!email || !password) {
+      Alert.alert("Required", "Please enter both email and password.");
+      return;
+    }
     try {
       setLoading(true);
       await createUserWithEmailAndPassword(auth, email, password);
     } catch (error) {
-      alert("Error: " + error.message);
+      // Professional English Error Handling for Firebase
+      if (error.code === 'auth/email-already-in-use') {
+        Alert.alert(
+          "Account Already Exists", 
+          "This email is already registered. Please log in instead."
+        );
+      } else if (error.code === 'auth/invalid-email') {
+        Alert.alert("Invalid Email", "Please enter a valid email address.");
+      } else if (error.code === 'auth/weak-password') {
+        Alert.alert("Weak Password", "Password should be at least 6 characters.");
+      } else {
+        Alert.alert("Registration Failed", "Something went wrong. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
   };
 
   const handleLogin = async () => {
+    if (!email || !password) {
+      Alert.alert("Required", "Please enter both email and password.");
+      return;
+    }
     try {
       setLoading(true);
       await signInWithEmailAndPassword(auth, email, password);
     } catch (error) {
-      alert("Login Failed: " + error.message);
+      Alert.alert("Login Failed", "Invalid email or password. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
   const handleLogout = () => {
-    if (auth) signOut(auth);
-    setActiveChat(null);
+    Alert.alert(
+      "Log Out",
+      "Are you sure you want to log out?",
+      [
+        { text: "Cancel", style: "cancel" },
+        { 
+          text: "Log Out", 
+          style: "destructive",
+          onPress: () => {
+            if (auth) signOut(auth);
+            setActiveChat(null);
+          }
+        }
+      ]
+    );
   };
 
   const handleSendMessage = async () => {
@@ -122,7 +157,7 @@ export default function App() {
       await addDoc(collection(db, 'chats'), msgData);
       setChatInput('');
     } catch (error) {
-      alert("Failed to send: " + error.message);
+      Alert.alert("Failed to send", "Check your internet connection.");
     }
   };
 
@@ -130,7 +165,7 @@ export default function App() {
     return (
       <View style={styles.centered}>
         <ActivityIndicator size="large" color="#00A884" />
-        <Text style={{color: '#fff', marginTop: 10}}>Nova Engine Loading...</Text>
+        <Text style={{color: '#fff', marginTop: 15, fontSize: 16}}>WhatsApp...</Text>
       </View>
     );
   }
@@ -138,20 +173,23 @@ export default function App() {
   if (!user) {
     return (
       <View style={styles.container}>
-        <Text style={styles.whatsappLogo}>WhatsApp Pro</Text>
-        <Text style={styles.subTitle}>{isSignUp ? 'Create secure account' : 'Your Secure Control Login'}</Text>
+        <Text style={styles.whatsappLogo}>WhatsApp</Text>
+        <Text style={styles.subTitle}>
+          {isSignUp ? 'Create your account' : 'Log in to WhatsApp'}
+        </Text>
         
         <TextInput 
           style={styles.input} 
-          placeholder="Enter Email" 
+          placeholder="Email address" 
           placeholderTextColor="#8696a0"
           value={email}
           onChangeText={setEmail}
           autoCapitalize="none"
+          keyboardType="email-address"
         />
         <TextInput 
           style={styles.input} 
-          placeholder="Enter Password" 
+          placeholder="Password" 
           placeholderTextColor="#8696a0"
           secureTextEntry
           value={password}
@@ -159,12 +197,12 @@ export default function App() {
         />
 
         <TouchableOpacity style={styles.whatsappBtn} onPress={isSignUp ? handleSignUp : handleLogin}>
-          <Text style={styles.btnText}>{isSignUp ? 'Register Now' : 'Login'}</Text>
+          <Text style={styles.btnText}>{isSignUp ? 'Sign Up' : 'Log In'}</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={() => setIsSignUp(!isSignUp)} style={{marginTop: 20}}>
-          <Text style={{color: '#00A884', fontWeight: 'bold'}}>
-            {isSignUp ? 'Already have an account? Login' : 'Need an account? Click Here'}
+        <TouchableOpacity onPress={() => setIsSignUp(!isSignUp)} style={{marginTop: 25}}>
+          <Text style={{color: '#00A884', fontWeight: '600', fontSize: 15}}>
+            {isSignUp ? 'Already have an account? Log in' : 'Don\'t have an account? Sign up'}
           </Text>
         </TouchableOpacity>
       </View>
@@ -174,11 +212,13 @@ export default function App() {
   if (activeChat) {
     return (
       <View style={styles.chatContainer}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => setActiveChat(null)}>
+        <View style={styles.chatHeader}>
+          <TouchableOpacity onPress={() => setActiveChat(null)} style={{flexDirection: 'row', alignItems: 'center'}}>
             <Text style={styles.backBtn}>◀</Text>
+            <View style={styles.avatarSmall}><Text style={{color:'#fff'}}>👤</Text></View>
+            <Text style={styles.headerTitle}>{activeChat.split('@')[0]}</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>{activeChat}</Text>
+          <Text style={{color: '#fff', fontSize: 20}}>⋮</Text>
         </View>
 
         <ScrollView style={styles.chatArea}>
@@ -194,21 +234,17 @@ export default function App() {
         </ScrollView>
 
         <View style={styles.inputBar}>
+          <TouchableOpacity style={styles.iconBtn}><Text style={{fontSize:20}}>😊</Text></TouchableOpacity>
           <TextInput 
             style={styles.inputField} 
-            placeholder="Type a message..." 
+            placeholder="Message" 
             placeholderTextColor="#8696a0"
             value={chatInput}
             onChangeText={setChatInput}
           />
           <TouchableOpacity style={styles.sendBtn} onPress={handleSendMessage}>
-            <Text style={styles.btnText}>▶</Text>
+            <Text style={styles.btnTextIcon}>▶</Text>
           </TouchableOpacity>
-        </View>
-
-        <View style={styles.adBannerContainer}>
-          <Text style={styles.adText}>Google AdMob Banner Advertisement</Text>
-          <Text style={styles.adSubText}>[Monetization Live: Generating Revenue]</Text>
         </View>
       </View>
     );
@@ -216,30 +252,51 @@ export default function App() {
 
   return (
     <View style={styles.chatContainer}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>WhatsApp Control</Text>
-        <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
-          <Text style={{color: '#fff', fontSize: 12}}>Logout</Text>
-        </TouchableOpacity>
-      </View>
-      
-      <View style={{padding: 15, backgroundColor: '#111B21'}}>
-        <Text style={{color: '#8696a0'}}>Logged in as: {user.email}</Text>
+      <View style={styles.mainHeader}>
+        <Text style={styles.mainHeaderTitle}>WhatsApp</Text>
+        <View style={{flexDirection: 'row', alignItems: 'center'}}>
+          <TouchableOpacity style={{marginRight: 20}}><Text style={{color: '#fff', fontSize: 18}}>📷</Text></TouchableOpacity>
+          <TouchableOpacity style={{marginRight: 20}}><Text style={{color: '#fff', fontSize: 18}}>🔍</Text></TouchableOpacity>
+          <TouchableOpacity onPress={handleLogout}><Text style={{color: '#fff', fontSize: 18}}>⋮</Text></TouchableOpacity>
+        </View>
       </View>
 
-      <ScrollView style={styles.chatArea}>
-        <Text style={styles.sectionTitle}>Active User Contacts</Text>
+      <ScrollView style={styles.chatListArea}>
         {contacts.map((contact, index) => (
           <TouchableOpacity key={index} style={styles.contactCard} onPress={() => setActiveChat(contact)}>
-            <View style={styles.avatar}><Text style={{color:'#fff'}}>👤</Text></View>
-            <View>
-              <Text style={styles.contactName}>{contact}</Text>
-              <Text style={styles.contactSub}>End-to-End Encrypted Chat</Text>
+            <View style={styles.avatarLarge}><Text style={{color:'#fff', fontSize: 20}}>👤</Text></View>
+            <View style={styles.contactInfo}>
+              <View style={{flexDirection: 'row', justifyContent: 'space-between'}}>
+                <Text style={styles.contactName}>{contact.split('@')[0]}</Text>
+                <Text style={styles.timeTextList}>Yesterday</Text>
+              </View>
+              <Text style={styles.contactSub}>Tap to open encrypted chat</Text>
             </View>
           </TouchableOpacity>
         ))}
       </ScrollView>
 
+      {/* WhatsApp Style Bottom Tabs */}
+      <View style={styles.bottomTabs}>
+        <TouchableOpacity style={styles.tabItem}>
+          <Text style={styles.tabIconActive}>💬</Text>
+          <Text style={styles.tabTextActive}>Chats</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.tabItem}>
+          <Text style={styles.tabIcon}>🔄</Text>
+          <Text style={styles.tabText}>Updates</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.tabItem}>
+          <Text style={styles.tabIcon}>👥</Text>
+          <Text style={styles.tabText}>Communities</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.tabItem}>
+          <Text style={styles.tabIcon}>📞</Text>
+          <Text style={styles.tabText}>Calls</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Kept your AdMob Banner */}
       <View style={styles.adBannerContainer}>
         <Text style={styles.adText}>Google AdMob Banner Advertisement</Text>
       </View>
@@ -250,30 +307,48 @@ export default function App() {
 const styles = StyleSheet.create({
   container: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#111B21', paddingHorizontal: 30 },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#111B21' },
-  whatsappLogo: { color: '#00A884', fontSize: 36, fontWeight: 'bold' },
-  subTitle: { color: '#8696a0', fontSize: 14, marginBottom: 30, marginTop: 5 },
+  whatsappLogo: { color: '#ffffff', fontSize: 32, fontWeight: 'bold', marginBottom: 10 },
+  subTitle: { color: '#8696a0', fontSize: 16, marginBottom: 40 },
   input: { width: '100%', backgroundColor: '#202C33', color: '#ffffff', paddingVertical: 15, paddingHorizontal: 20, borderRadius: 8, marginBottom: 15, fontSize: 16 },
-  whatsappBtn: { backgroundColor: '#00A884', paddingVertical: 15, width: '100%', borderRadius: 8, alignItems: 'center', marginTop: 10 },
+  whatsappBtn: { backgroundColor: '#00A884', paddingVertical: 15, width: '100%', borderRadius: 25, alignItems: 'center', marginTop: 10 },
   btnText: { color: '#111B21', fontSize: 16, fontWeight: 'bold' },
-  chatContainer: { flex: 1, backgroundColor: '#0B141A', paddingTop: 40 },
-  header: { flexDirection: 'row', backgroundColor: '#202C33', paddingHorizontal: 15, paddingVertical: 15, alignItems: 'center', justifyContent: 'space-between' },
-  backBtn: { color: '#00A884', fontSize: 20, marginRight: 15 },
-  headerTitle: { color: '#ffffff', fontSize: 18, fontWeight: 'bold' },
-  logoutBtn: { backgroundColor: '#FF3B30', padding: 6, borderRadius: 5 },
-  chatArea: { flex: 1, paddingHorizontal: 15, paddingTop: 10 },
-  sectionTitle: { color: '#8696a0', fontSize: 12, fontWeight: 'bold', marginBottom: 15 },
-  contactCard: { flexDirection: 'row', backgroundColor: '#111B21', padding: 15, borderRadius: 10, alignItems: 'center', marginBottom: 10 },
-  avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#687781', justifyContent: 'center', alignItems: 'center', marginRight: 15 },
-  contactName: { color: '#e9edef', fontSize: 16, fontWeight: 'bold' },
-  contactSub: { color: '#8696a0', fontSize: 13 },
-  msgMe: { backgroundColor: '#005C4B', padding: 10, borderRadius: 10, alignSelf: 'flex-end', marginBottom: 10, maxWidth: '80%' },
-  msgFriend: { backgroundColor: '#202C33', padding: 10, borderRadius: 10, alignSelf: 'flex-start', marginBottom: 10, maxWidth: '80%' },
+  btnTextIcon: { color: '#111B21', fontSize: 14, fontWeight: 'bold' },
+  
+  chatContainer: { flex: 1, backgroundColor: '#111B21', paddingTop: 40 },
+  mainHeader: { flexDirection: 'row', backgroundColor: '#111B21', paddingHorizontal: 15, paddingVertical: 15, alignItems: 'center', justifyContent: 'space-between' },
+  mainHeaderTitle: { color: '#ffffff', fontSize: 24, fontWeight: '600' },
+  
+  chatHeader: { flexDirection: 'row', backgroundColor: '#202C33', paddingHorizontal: 10, paddingVertical: 10, alignItems: 'center', justifyContent: 'space-between' },
+  backBtn: { color: '#fff', fontSize: 18, marginRight: 5 },
+  headerTitle: { color: '#ffffff', fontSize: 18, fontWeight: '600', textTransform: 'capitalize' },
+  avatarSmall: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#687781', justifyContent: 'center', alignItems: 'center', marginRight: 10 },
+  
+  chatListArea: { flex: 1, backgroundColor: '#111B21' },
+  contactCard: { flexDirection: 'row', paddingHorizontal: 15, paddingVertical: 12, alignItems: 'center' },
+  avatarLarge: { width: 50, height: 50, borderRadius: 25, backgroundColor: '#687781', justifyContent: 'center', alignItems: 'center', marginRight: 15 },
+  contactInfo: { flex: 1, borderBottomWidth: 0.5, borderBottomColor: '#202C33', paddingBottom: 12 },
+  contactName: { color: '#e9edef', fontSize: 17, fontWeight: '500', textTransform: 'capitalize' },
+  contactSub: { color: '#8696a0', fontSize: 14, marginTop: 3 },
+  timeTextList: { color: '#8696a0', fontSize: 12 },
+  
+  chatArea: { flex: 1, paddingHorizontal: 15, paddingTop: 10, backgroundColor: '#0B141A' },
+  msgMe: { backgroundColor: '#005C4B', padding: 8, paddingHorizontal: 12, borderRadius: 12, alignSelf: 'flex-end', marginBottom: 10, maxWidth: '80%' },
+  msgFriend: { backgroundColor: '#202C33', padding: 8, paddingHorizontal: 12, borderRadius: 12, alignSelf: 'flex-start', marginBottom: 10, maxWidth: '80%' },
   msgText: { color: '#e9edef', fontSize: 16 },
-  timeText: { color: '#8696a0', fontSize: 10, alignSelf: 'flex-end', marginTop: 4 },
-  inputBar: { flexDirection: 'row', padding: 10, backgroundColor: '#111B21', alignItems: 'center' },
-  inputField: { flex: 1, backgroundColor: '#2A3942', color: '#ffffff', paddingVertical: 10, paddingHorizontal: 15, borderRadius: 20, marginRight: 10 },
-  sendBtn: { backgroundColor: '#00A884', width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
-  adBannerContainer: { backgroundColor: '#202C33', paddingVertical: 10, alignItems: 'center', justifyContent: 'center', borderTopWidth: 1, borderColor: '#2A3942' },
-  adText: { color: '#00A884', fontSize: 12, fontWeight: 'bold', letterSpacing: 1 },
-  adSubText: { color: '#8696a0', fontSize: 10, marginTop: 2 }
+  timeText: { color: '#8696a0', fontSize: 11, alignSelf: 'flex-end', marginTop: 2 },
+  
+  inputBar: { flexDirection: 'row', padding: 10, backgroundColor: '#202C33', alignItems: 'center' },
+  iconBtn: { padding: 10 },
+  inputField: { flex: 1, backgroundColor: '#2A3942', color: '#ffffff', paddingVertical: 10, paddingHorizontal: 15, borderRadius: 25, marginRight: 10, fontSize: 16 },
+  sendBtn: { backgroundColor: '#00A884', width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
+  
+  bottomTabs: { flexDirection: 'row', backgroundColor: '#111B21', paddingVertical: 10, borderTopWidth: 0.5, borderTopColor: '#202C33', justifyContent: 'space-around' },
+  tabItem: { alignItems: 'center', justifyContent: 'center', flex: 1 },
+  tabIconActive: { fontSize: 22, marginBottom: 4, opacity: 1 },
+  tabIcon: { fontSize: 22, marginBottom: 4, opacity: 0.5 },
+  tabTextActive: { color: '#ffffff', fontSize: 12, fontWeight: '600' },
+  tabText: { color: '#8696a0', fontSize: 12, fontWeight: '500' },
+  
+  adBannerContainer: { backgroundColor: '#202C33', paddingVertical: 10, alignItems: 'center', justifyContent: 'center' },
+  adText: { color: '#00A884', fontSize: 12, fontWeight: 'bold', letterSpacing: 1 }
 });
