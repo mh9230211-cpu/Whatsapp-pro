@@ -1,7 +1,6 @@
 workflows:
   android-workflow:
     name: WhatsApp Pro APK Build
-    instance_type: linux
     environment:
       node: latest
     scripts:
