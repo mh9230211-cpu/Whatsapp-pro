@@ -1,0 +1,29 @@
+{
+  "expo": {
+    "name": "WhatsApp Pro",
+    "slug": "whatsapp-pro",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#111B21"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#111B21"
+      },
+      "package": "com.businessman.whatsapppro"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    }
+  }
+}
