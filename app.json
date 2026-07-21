@@ -1,18 +1,5 @@
 {
-  "expo": {
-    "name": "WhatsApp Pro",
-    "slug": "whatsapp-pro",
-    "version": "1.0.0",
-    "orientation": "portrait",
-    "splash": {
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
-    },
-    "android": {
-      "package": "com.whatsapp.pro.production",
-      "adaptiveIcon": {
-        "backgroundColor": "#ffffff"
-      }
-    }
+  "dependencies": {
+    "firebase": "^10.7.0"
   }
 }
